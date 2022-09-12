@@ -9,6 +9,9 @@
             编辑博客
           </router-link>
         </el-link>
+        <el-link icon="el-icon-delete" v-if="ownblog">
+          <el-button type="danger" round @click="delblog">删除</el-button>
+        </el-link>
       </div>
       <el-divider></el-divider>
       <div class="markdown-body" v-html="blog.content"></div>
@@ -32,7 +35,38 @@ export default {
       ownBlog: false
     }
   },
+  methods: {
+    delblog () {
+      const blogId = this.$route.params.blogid
+      const _this = this
+      if (blogId) {
+        this.$confirm('此操作将永久删除该文章, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          _this.$axios.post(`/blog/delete/${blogId}`, null, {
+            headers: {
+              "Authorization": localStorage.getItem("token")
+            }
+          }).then(res => {
+            this.$message({
+              type: 'success',
+              message: res.data.data
+            });
+            _this.$router.push("/blogs")
+          })
+        }).catch(() => {
+          this.$message({
+            type: 'info',
+            message: '已取消删除'
+          });
+        });
+      }
+    }
+  },
   created() {
+    //获取动态路由的 blogid
     const blogId = this.$route.params.blogId
     const _this = this
     if (blogId) {
@@ -40,13 +74,14 @@ export default {
         const blog = res.data.data
         _this.blog.id = blog.id
         _this.blog.title = blog.title
+        _this.blog.description = blog.description
 
         //用markdown渲染博客内容
         const MarkdownIt = require("markdown-it");
         const md = new MarkdownIt();
         const result = md.render(blog.content);
         _this.blog.content = result
-        //编辑按钮展示条件
+        //编辑和刪除按钮展示条件
         _this.ownBlog = (blog.userId === _this.$store.getters.getUser.id)
       })
     }
